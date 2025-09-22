@@ -1,40 +1,43 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../data/session.dart';
 import '../../data/session_repo.dart';
 
-final sessionRepoProvider = Provider<SessionRepo>((ref) => const SessionRepo());
+class TimerController extends ChangeNotifier {
+  TimerController(this._repo);
 
-/// Exposes the currently active session (if any).
-final activeSessionProvider = FutureProvider<Session?>((ref) async {
-  final repo = ref.watch(sessionRepoProvider);
-  return repo.getActive();
-});
+  final SessionRepo _repo;
 
-/// Controller for starting/stopping the timer.
-class TimerController extends AsyncNotifier<Session?> {
-  @override
-  Future<Session?> build() async {
-    return ref.watch(activeSessionProvider.future);
+  Session? _active;
+  Session? get active => _active;
+
+  bool _loading = false;
+  bool get loading => _loading;
+
+  Future<void> refresh() async {
+    _active = await _repo.getActive();
+    notifyListeners();
   }
 
   Future<void> start(int projectId, {String? note}) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final repo = ref.read(sessionRepoProvider);
-      return repo.startTimer(projectId, note: note);
-    });
+    _loading = true;
+    notifyListeners();
+    try {
+      _active = await _repo.startTimer(projectId, note: note);
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> stop() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final repo = ref.read(sessionRepoProvider);
-      return repo.stopActive();
-    });
+    _loading = true;
+    notifyListeners();
+    try {
+      _active = await _repo.stopActive();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 }
-
-final timerControllerProvider = AsyncNotifierProvider<TimerController, Session?>(
-  TimerController.new,
-);

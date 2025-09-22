@@ -1,12 +1,8 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 
 import '../../data/project.dart';
 import '../../data/project_repo.dart';
-import '../../data/session_repo.dart';
-
-/// Repository providers
-final projectRepoProvider = Provider<ProjectRepo>((ref) => const ProjectRepo());
-final sessionRepoProvider = Provider<SessionRepo>((ref) => const SessionRepo());
 
 /// Domain model with derived progress for display.
 class ProjectWithProgress {
@@ -23,28 +19,35 @@ class ProjectWithProgress {
   }
 }
 
-/// Streams active (non-archived) projects with aggregated minutes.
-final projectsProvider = StreamProvider<List<ProjectWithProgress>>((ref) async* {
-  final repo = ref.watch(projectRepoProvider);
-  final stream = await repo.watchActive();
-  await for (final projects in stream) {
-    final totals = <int, int>{};
-    // Compute totals serially to keep it simple initially.
-    for (final p in projects) {
-      totals[p.id] = await repo.totalMinutes(p.id);
-    }
-    yield [
-      for (final p in projects)
-        ProjectWithProgress(project: p, totalMinutes: totals[p.id] ?? 0),
-    ];
-  }
-});
+class ProjectsController extends ChangeNotifier {
+  ProjectsController(this._repo);
 
-/// Per-project detail provider with sessions totals.
-final projectDetailProvider = FutureProvider.family<ProjectWithProgress, int>((ref, id) async {
-  final repo = ref.watch(projectRepoProvider);
-  final p = await repo.get(id);
-  if (p == null) throw StateError('Project not found: $id');
-  final minutes = await repo.totalMinutes(id);
-  return ProjectWithProgress(project: p, totalMinutes: minutes);
-});
+  final ProjectRepo _repo;
+
+  List<ProjectWithProgress> _items = const [];
+  List<ProjectWithProgress> get items => _items;
+
+  StreamSubscription<List<Project>>? _sub;
+
+  Future<void> initialize() async {
+    _sub?.cancel();
+    final stream = await _repo.watchActive();
+    _sub = stream.listen((projects) async {
+      final totals = <int, int>{};
+      for (final p in projects) {
+        totals[p.id] = await _repo.totalMinutes(p.id);
+      }
+      _items = [
+        for (final p in projects)
+          ProjectWithProgress(project: p, totalMinutes: totals[p.id] ?? 0),
+      ];
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+}
