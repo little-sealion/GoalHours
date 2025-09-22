@@ -43,6 +43,7 @@ dependencies:
   purchases_flutter: 
   google_mobile_ads: 
   intl: 
+  path_provider: 
 
 dev_dependencies:
   flutter_test:
