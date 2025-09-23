@@ -17,6 +17,10 @@ class Project {
   @Index()
   late int goalMinutes;
 
+  /// Sort index for manual ordering in the projects list (ascending)
+  @Index()
+  int sortIndex = 0;
+
   late DateTime createdAtUtc;
 
   @Index()

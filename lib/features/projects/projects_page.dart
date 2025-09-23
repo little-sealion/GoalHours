@@ -21,7 +21,8 @@ class ProjectsPage extends StatelessWidget {
         child: Consumer<ProjectsController>(
           builder: (context, ctrl, _) {
             final items = ctrl.items;
-            return ListView(
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'My Goals',
@@ -34,10 +35,33 @@ class ProjectsPage extends StatelessWidget {
                   const SizedBox(height: 24),
                   Text('Projects will appear here', style: Theme.of(context).textTheme.bodyMedium),
                 ] else ...[
-                  for (final it in items) ...[
-                    _ProjectRow(item: it),
-                    const SizedBox(height: 16),
-                  ]
+                  Expanded(
+                    child: ReorderableListView.builder(
+                      padding: EdgeInsets.zero,
+                      itemCount: items.length,
+                      onReorder: (oldIndex, newIndex) async {
+                        // Adjust newIndex when moving down
+                        if (newIndex > oldIndex) newIndex -= 1;
+                        final reordered = List<ProjectWithProgress>.from(items);
+                        final moved = reordered.removeAt(oldIndex);
+                        reordered.insert(newIndex, moved);
+                        // Persist order by ids
+                        final ids = [for (final it in reordered) it.project.id];
+                        await context.read<ProjectsController>().reorder(ids);
+                      },
+                      itemBuilder: (context, index) {
+                        final it = items[index];
+                        return Padding(
+                          key: ValueKey('project-${it.project.id}'),
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: _ProjectRow(
+                            key: ValueKey('row-${it.project.id}'),
+                            item: it,
+                          ),
+                        );
+                      },
+                    ),
+                  )
                 ],
               ],
             );
@@ -82,7 +106,7 @@ class ProjectsPage extends StatelessWidget {
 }
 
 class _ProjectRow extends StatelessWidget {
-  const _ProjectRow({required this.item});
+  const _ProjectRow({super.key, required this.item});
 
   final ProjectWithProgress item;
 
@@ -95,7 +119,9 @@ class _ProjectRow extends StatelessWidget {
     final color = Color(project.color);
     final timer = context.watch<TimerController>();
     final isActive = timer.active?.projectId == project.id;
-    return Row(
+    return InkWell(
+      onTap: () => context.push('/project/${project.id}'),
+      child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // Left-side stacked actions: manual add (+) and clock start/stop
@@ -186,6 +212,6 @@ class _ProjectRow extends StatelessWidget {
           ),
         ),
       ],
-    );
+    ));
   }
 }

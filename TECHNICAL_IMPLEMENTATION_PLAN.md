@@ -68,8 +68,8 @@ lib/
         progress_bar.dart
 
     timer/
-      timer_ctrl.dart      # start/stop, active session
-      timer_sheet.dart
+      timer_ctrl.dart          # start/stop, active session
+      stopwatch_sheet.dart     # start/pause/stop/save + rounded-minute save
       manual_entry_dialog.dart
 
     settings/
@@ -283,18 +283,26 @@ Constraints and rules:
 - Display uses compact format (XhYm), and progress bar fill was tweaked for accurate visual ratio.
 - Done
 
-5b) Timer indicators (next)
+5b) Timer indicators (Done)
 - Add per-project visual affordances:
-  - Show a subtle “Start”/“Stop” affordance or an active indicator on the row when a session is running for that project.
-  - Floating timer chip when any session is active (global), tapping opens a minimal timer sheet.
-- Keep it minimal; real timer controls will land in Step 6.
-- Done when: active project visibly differs and a global chip is present while running.
+  - Per-row active indicator (“Running” badge) and stacked action icons: “+” (manual) and clock (opens stopwatch sheet).
+  - Global floating timer chip when a session is active (Stop action).
+- Keep it minimal; real timer controls land in Step 6.
+- Done
 
-6) Timer flow + lifecycle safety
-- Timer sheet: start/stop; elapsed derived from startUtc.
-- Persist on start; set endUtc on stop; prevent multiple active sessions.
-- Verify resume after app kill/background; time derived from DB + system clock.
-- Done when: timer works reliably across app restarts.
+6) Timer flow + lifecycle safety (Next)
+- Stopwatch sheet UX:
+  - Start/Pause/Resume/Stop/Save flow.
+  - After Stop, show confirmation “Will add Xh Ym to <project>” and always-enable Save; show subtle “< 1m, keep going” hint when rounded minutes == 0.
+  - Expanded sheet height (~80% of screen) to reduce accidental taps on background.
+- Persistence integration:
+  - Start/Stop integrated with SessionRepo and TimerController so live sessions are DB-backed (single-active invariant).
+  - Elapsed derived from persisted startUtc, sheet shows live ticking.
+  - On resume/app restart, rehydrate from DB and continue ticking.
+- Acceptance:
+  - Start a session, pause/resume works; stop then save adds rounded minutes; totals update.
+  - Killing/restarting the app preserves the active session and elapsed.
+  - Attempting to start another session stops or blocks appropriately.
 
 7) Polish the core
 - Colors/accessibility; larger tap targets; empty/first-run states.
@@ -308,4 +316,4 @@ Constraints and rules:
 - Settings: “Go Premium” and “Restore purchases”.
 - Done when: entitlement flips remove ads and limits instantly.
 
-Note: Apple Watch companion is intentionally deferred for later phases.
+

@@ -41,6 +41,11 @@ const ProjectSchema = CollectionSchema(
       id: 4,
       name: r'name',
       type: IsarType.string,
+    ),
+    r'sortIndex': PropertySchema(
+      id: 5,
+      name: r'sortIndex',
+      type: IsarType.long,
     )
   },
   estimateSize: _projectEstimateSize,
@@ -57,6 +62,19 @@ const ProjectSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'goalMinutes',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
+    r'sortIndex': IndexSchema(
+      id: -1914576846740722168,
+      name: r'sortIndex',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'sortIndex',
           type: IndexType.value,
           caseSensitive: false,
         )
@@ -105,6 +123,7 @@ void _projectSerialize(
   writer.writeDateTime(offsets[2], object.createdAtUtc);
   writer.writeLong(offsets[3], object.goalMinutes);
   writer.writeString(offsets[4], object.name);
+  writer.writeLong(offsets[5], object.sortIndex);
 }
 
 Project _projectDeserialize(
@@ -120,6 +139,7 @@ Project _projectDeserialize(
   object.goalMinutes = reader.readLong(offsets[3]);
   object.id = id;
   object.name = reader.readString(offsets[4]);
+  object.sortIndex = reader.readLong(offsets[5]);
   return object;
 }
 
@@ -140,6 +160,8 @@ P _projectDeserializeProp<P>(
       return (reader.readLong(offset)) as P;
     case 4:
       return (reader.readString(offset)) as P;
+    case 5:
+      return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -168,6 +190,14 @@ extension ProjectQueryWhereSort on QueryBuilder<Project, Project, QWhere> {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'goalMinutes'),
+      );
+    });
+  }
+
+  QueryBuilder<Project, Project, QAfterWhere> anySortIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'sortIndex'),
       );
     });
   }
@@ -332,6 +362,96 @@ extension ProjectQueryWhere on QueryBuilder<Project, Project, QWhereClause> {
         lower: [lowerGoalMinutes],
         includeLower: includeLower,
         upper: [upperGoalMinutes],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Project, Project, QAfterWhereClause> sortIndexEqualTo(
+      int sortIndex) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'sortIndex',
+        value: [sortIndex],
+      ));
+    });
+  }
+
+  QueryBuilder<Project, Project, QAfterWhereClause> sortIndexNotEqualTo(
+      int sortIndex) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'sortIndex',
+              lower: [],
+              upper: [sortIndex],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'sortIndex',
+              lower: [sortIndex],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'sortIndex',
+              lower: [sortIndex],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'sortIndex',
+              lower: [],
+              upper: [sortIndex],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Project, Project, QAfterWhereClause> sortIndexGreaterThan(
+    int sortIndex, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'sortIndex',
+        lower: [sortIndex],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Project, Project, QAfterWhereClause> sortIndexLessThan(
+    int sortIndex, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'sortIndex',
+        lower: [],
+        upper: [sortIndex],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Project, Project, QAfterWhereClause> sortIndexBetween(
+    int lowerSortIndex,
+    int upperSortIndex, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'sortIndex',
+        lower: [lowerSortIndex],
+        includeLower: includeLower,
+        upper: [upperSortIndex],
         includeUpper: includeUpper,
       ));
     });
@@ -735,6 +855,59 @@ extension ProjectQueryFilter
       ));
     });
   }
+
+  QueryBuilder<Project, Project, QAfterFilterCondition> sortIndexEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sortIndex',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Project, Project, QAfterFilterCondition> sortIndexGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'sortIndex',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Project, Project, QAfterFilterCondition> sortIndexLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'sortIndex',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Project, Project, QAfterFilterCondition> sortIndexBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'sortIndex',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension ProjectQueryObject
@@ -801,6 +974,18 @@ extension ProjectQuerySortBy on QueryBuilder<Project, Project, QSortBy> {
   QueryBuilder<Project, Project, QAfterSortBy> sortByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Project, Project, QAfterSortBy> sortBySortIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sortIndex', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Project, Project, QAfterSortBy> sortBySortIndexDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sortIndex', Sort.desc);
     });
   }
 }
@@ -878,6 +1063,18 @@ extension ProjectQuerySortThenBy
       return query.addSortBy(r'name', Sort.desc);
     });
   }
+
+  QueryBuilder<Project, Project, QAfterSortBy> thenBySortIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sortIndex', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Project, Project, QAfterSortBy> thenBySortIndexDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sortIndex', Sort.desc);
+    });
+  }
 }
 
 extension ProjectQueryWhereDistinct
@@ -910,6 +1107,12 @@ extension ProjectQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'name', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Project, Project, QDistinct> distinctBySortIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'sortIndex');
     });
   }
 }
@@ -949,6 +1152,12 @@ extension ProjectQueryProperty
   QueryBuilder<Project, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<Project, int, QQueryOperations> sortIndexProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sortIndex');
     });
   }
 }

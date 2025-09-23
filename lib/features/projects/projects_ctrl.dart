@@ -36,6 +36,12 @@ class ProjectsController extends ChangeNotifier {
     _sub?.cancel();
     final stream = await _repo.watchActive();
     _sub = stream.listen((projects) async {
+      // Sort by sortIndex ascending for display order. Fallback to createdAtUtc for stability.
+      projects.sort((a, b) {
+        final c = a.sortIndex.compareTo(b.sortIndex);
+        if (c != 0) return c;
+        return a.createdAtUtc.compareTo(b.createdAtUtc);
+      });
       final totals = <int, int>{};
       for (final p in projects) {
         totals[p.id] = await _repo.totalMinutes(p.id);
@@ -70,5 +76,26 @@ class ProjectsController extends ChangeNotifier {
     _sub?.cancel();
     _sessionsSub?.cancel();
     super.dispose();
+  }
+
+  /// Persist a new order of projects by their ids and refresh list
+  Future<void> reorder(List<int> orderedIds) async {
+    await _repo.reorder(orderedIds);
+    // Re-fetch totals in new order
+    final projects = [for (final it in _items) it.project]
+      ..sort((a, b) {
+        final c = a.sortIndex.compareTo(b.sortIndex);
+        if (c != 0) return c;
+        return a.createdAtUtc.compareTo(b.createdAtUtc);
+      });
+    final totals = <int, int>{};
+    for (final p in projects) {
+      totals[p.id] = await _repo.totalMinutes(p.id);
+    }
+    _items = [
+      for (final p in projects)
+        ProjectWithProgress(project: p, totalMinutes: totals[p.id] ?? 0),
+    ];
+    notifyListeners();
   }
 }
