@@ -6,7 +6,7 @@ class RoughCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
-    this.borderColor = const Color(0xFF1E1E1E),
+    this.borderColor,
     this.fillColor,
     this.borderWidth = 2.0,
     this.roughness = 2.0,
@@ -16,7 +16,7 @@ class RoughCard extends StatelessWidget {
 
   final Widget child;
   final EdgeInsets padding;
-  final Color borderColor;
+  final Color? borderColor;
   final Color? fillColor;
   final double borderWidth;
   final double roughness;
@@ -27,6 +27,7 @@ class RoughCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final bg = fillColor ?? scheme.surface;
+    final stroke = borderColor ?? scheme.outline;
 
     final drawConfig = DrawConfig.build(
       roughness: roughness,
@@ -44,7 +45,7 @@ class RoughCard extends StatelessWidget {
         shape: RoughBoxShape.rectangle,
         borderStyle: RoughDrawingStyle(
           width: borderWidth,
-          color: borderColor,
+          color: stroke,
         ),
         fillStyle: RoughDrawingStyle(
           color: bg,

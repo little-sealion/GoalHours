@@ -59,3 +59,7 @@ Hot reload: press `r` in the Flutter run terminal. Hot restart: `R`.
 	- If analyzer version warnings appear, try `flutter pub upgrade`.
 
 For architecture and milestones, see `TECHNICAL_IMPLEMENTATION_PLAN.md`.
+
+ios google-ads
+app_id: ca-app-pub-3438016031573205~7794828872
+unit_id: ca-app-pub-3438016031573205/5097401397

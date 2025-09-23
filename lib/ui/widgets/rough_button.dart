@@ -8,7 +8,7 @@ class RoughButton extends StatelessWidget {
     required this.label,
     this.icon,
     this.fillColor,
-    this.borderColor = const Color(0xFF1E1E1E),
+    this.borderColor,
     this.padding = const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
     this.roughness = 2.0,
     this.borderWidth = 2.0,
@@ -20,7 +20,7 @@ class RoughButton extends StatelessWidget {
   final String label;
   final IconData? icon;
   final Color? fillColor;
-  final Color borderColor;
+  final Color? borderColor;
   final EdgeInsets padding;
   final double roughness;
   final double borderWidth;
@@ -32,6 +32,7 @@ class RoughButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final bg = fillColor ?? scheme.primaryContainer;
     final fg = scheme.onPrimaryContainer;
+    final stroke = borderColor ?? scheme.outline;
 
     final drawConfig = DrawConfig.build(
       roughness: roughness,
@@ -52,7 +53,7 @@ class RoughButton extends StatelessWidget {
           shape: RoughBoxShape.rectangle,
           borderStyle: RoughDrawingStyle(
             width: borderWidth,
-            color: borderColor,
+            color: stroke,
           ),
           fillStyle: RoughDrawingStyle(
             color: bg,

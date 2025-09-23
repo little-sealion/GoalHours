@@ -38,16 +38,16 @@ Constraints and scope:
 
 ## Architecture (kept simple)
 - Keep it minimal and pragmatic; avoid over-abstracting until needed.
-- State management: flutter_riverpod
+- State management: Provider + ChangeNotifier (lightweight)
 - Navigation: go_router (single file router)
 - Persistence: Isar (local DB). A single repository per entity is enough.
 - Time handling: Store UTC timestamps; compute durations from DB values.
-- Theming: Material 3; per-project color stored as int.
+- Theming: Material 3; per-project color stored as int; rough_flutter for sketch style.
 
 ### Project structure (lean)
 ```
 lib/
-  main.dart                # runApp + ProviderScope
+  main.dart                # runApp + Providers
   app_router.dart          # all routes in one place
   theme.dart
 
@@ -139,12 +139,10 @@ Constraints and rules:
 - Ads visible if not premium; hidden otherwise
 
 ## State management
-- Providers
-  - isPremiumProvider: AsyncValue<bool>
-  - activeSessionProvider: Stream/State of current active session (Session?)
-  - projectsProvider: Stream/List of Project with derived progress
-  - projectDetailProvider(projectId)
-  - timerController: exposes start/stop status and elapsed
+- Controllers (ChangeNotifier via Provider)
+  - ProjectsController: streams Projects with derived totals and progress
+  - TimerController: start/stop, single-active-session invariant, elapsed
+  - Premium/Ads controller: later
 
 ## Persistence layer
 - Isar collections: ProjectCollection, SessionCollection
@@ -199,8 +197,9 @@ Constraints and rules:
   - Ads: Add app ID in AndroidManifest.xml
 
 ## Dependencies (pubspec.yaml)
-- flutter_riverpod
+- provider
 - go_router
+- rough_flutter
 - isar, isar_flutter_libs, isar_generator, build_runner
 - google_mobile_ads
 - purchases_flutter   # RevenueCat
@@ -274,14 +273,15 @@ Constraints and rules:
 - Done when: providers compile and tests pass.
 
 4) Projects list UI (wire existing designs)
-- Hook your Projects page to providers; add colorful progress_bar widget.
-- Add FAB to create project; simple edit form (name, color, goal minutes).
-- Done when: create/edit projects and see progress update.
+- Hook Projects page to controllers; add colorful rough progress bar.
+- Add FAB to create project; simple edit form (name, goal hours) with keyboard dismiss on tap-out.
+- Done when: create projects and see progress update. (Done)
 
-5) Project detail + sessions
-- Detail page: list sessions (group by date), swipe to delete/edit.
-- Manual entry dialog for HH:MM (validate and insert session).
-- Done when: adding/deleting sessions updates totals immediately.
+5) Manual entry + sessions (next)
+- Manual entry dialog for HH:MM on Projects list row (validate and insert via SessionRepo).
+- ProjectsController already watches Session changes; bar updates automatically.
+- Optionally add a minimal Project Detail stub; sessions list can follow.
+- Done when: manual entries immediately update progress.
 
 6) Timer flow + lifecycle safety
 - Timer sheet: start/stop; elapsed derived from startUtc.
