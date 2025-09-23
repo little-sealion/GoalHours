@@ -125,11 +125,17 @@ class _ProjectRow extends StatelessWidget {
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
-                  builder: (ctx) => StopwatchSheet(
-                    projectId: project.id,
-                    projectName: project.name,
-                    accent: Color(project.color),
-                  ),
+                  builder: (ctx) {
+                    final h = MediaQuery.of(ctx).size.height;
+                    return SizedBox(
+                      height: h * 0.8, // cover most of the screen
+                      child: StopwatchSheet(
+                        projectId: project.id,
+                        projectName: project.name,
+                        accent: Color(project.color),
+                      ),
+                    );
+                  },
                 );
               },
             ),

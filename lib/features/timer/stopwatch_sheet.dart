@@ -124,11 +124,15 @@ class _StopwatchSheetState extends State<StopwatchSheet> {
     final elapsed = _elapsedNow;
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
             Container(
               width: 40,
               height: 4,
@@ -186,20 +190,17 @@ class _StopwatchSheetState extends State<StopwatchSheet> {
                     label: const Text('Stop'),
                   ),
                 ] else ...[
-                  // stopped state: show Save button (disabled if < 1 minute)
-                  Builder(builder: (context) {
-                    final rounded = _roundedMinutes(elapsed);
-                    return FilledButton.icon(
-                      onPressed: rounded > 0 ? _save : null,
-                      icon: const Icon(Icons.save_outlined),
-                      label: const Text('Save'),
-                    );
-                  }),
+                  // stopped state: show Save button (always enabled)
+                  FilledButton.icon(
+                    onPressed: _save,
+                    icon: const Icon(Icons.save_outlined),
+                    label: const Text('Save'),
+                  ),
                 ],
               ],
             ),
             const SizedBox(height: 8),
-            if (_showConfirm)
+            if (_showConfirm) ...[
               Builder(builder: (context) {
                 final rounded = _roundedMinutes(elapsed);
                 final label = _minutesLabelFromInt(rounded);
@@ -209,7 +210,23 @@ class _StopwatchSheetState extends State<StopwatchSheet> {
                   textAlign: TextAlign.center,
                 );
               }),
-          ],
+              const SizedBox(height: 2),
+              Builder(builder: (context) {
+                final rounded = _roundedMinutes(elapsed);
+                if (rounded > 0) return const SizedBox.shrink();
+                final base = Theme.of(context).textTheme.bodySmall;
+                final c = base?.color;
+                return Text(
+                  '< 1m, keep going',
+                  style: base?.copyWith(color: c?.withValues(alpha: 0.7)),
+                  textAlign: TextAlign.center,
+                );
+              }),
+            ],
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
