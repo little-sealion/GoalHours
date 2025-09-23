@@ -560,6 +560,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.6.2"
+  rough_flutter:
+    dependency: "direct main"
+    description:
+      name: rough_flutter
+      sha256: "0828b3c81e475aee2308154d05ed87e671661dfc237aac04dc972b0f9b22016b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.2"
   shelf:
     dependency: transitive
     description:

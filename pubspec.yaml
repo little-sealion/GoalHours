@@ -44,6 +44,7 @@ dependencies:
   google_mobile_ads: 
   intl: 
   path_provider: 
+  rough_flutter: 
 
 dev_dependencies:
   flutter_test:

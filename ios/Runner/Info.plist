@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Google Mobile Ads: Set your AdMob App ID. Replace the sample ID below with your real one. -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<!-- If you use Google Ad Manager instead of AdMob, remove the App ID above and set this flag to true instead: -->
+	<!-- <key>GADIsAdManagerApp</key>
+	<true/> -->
 </dict>
 </plist>
