@@ -134,7 +134,7 @@ Constraints and rules:
 - Clamp progress 0..>1; display percent; over-goal visually indicated
 
 5) Free vs Premium logic
-- On app start, query purchase state; store in Riverpod provider
+- On app start, query purchase state; store in a Provider-backed controller/service
 - Enforce project creation limit in UI and repository
 - Ads visible if not premium; hidden otherwise
 
@@ -277,11 +277,18 @@ Constraints and rules:
 - Add FAB to create project; simple edit form (name, goal hours) with keyboard dismiss on tap-out.
 - Done when: create projects and see progress update. (Done)
 
-5) Manual entry + sessions (next)
-- Manual entry dialog for HH:MM on Projects list row (validate and insert via SessionRepo).
-- ProjectsController already watches Session changes; bar updates automatically.
-- Optionally add a minimal Project Detail stub; sessions list can follow.
-- Done when: manual entries immediately update progress.
+5) Manual entry + sessions (Done)
+- Manual entry dialog (HH:MM) on Projects list row wired to SessionRepo.addManualEntry.
+- ProjectsController watches Session changes; bar updates automatically.
+- Display uses compact format (XhYm), and progress bar fill was tweaked for accurate visual ratio.
+- Done
+
+5b) Timer indicators (next)
+- Add per-project visual affordances:
+  - Show a subtle “Start”/“Stop” affordance or an active indicator on the row when a session is running for that project.
+  - Floating timer chip when any session is active (global), tapping opens a minimal timer sheet.
+- Keep it minimal; real timer controls will land in Step 6.
+- Done when: active project visibly differs and a global chip is present while running.
 
 6) Timer flow + lifecycle safety
 - Timer sheet: start/stop; elapsed derived from startUtc.
