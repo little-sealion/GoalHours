@@ -50,24 +50,13 @@ class _StopwatchSheetState extends State<StopwatchSheet> {
     return _accumulated;
   }
 
-  int _roundedMinutes(Duration d) {
-    // Round to nearest minute
-    return ((d.inSeconds + 30) ~/ 60);
-  }
-
-  String _minutesLabelFromInt(int minutes) {
-    final h = minutes ~/ 60;
-    final m = minutes % 60;
-    if (h > 0 && m > 0) return '${h}h ${m}m';
-    if (h > 0) return '${h}h';
-    return '${m}m';
-  }
+  
 
   String _formatHMS(Duration d) {
-    final h = d.inHours;
+    final h = d.inHours.toString().padLeft(2, '0');
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return h > 0 ? '$h:$m:$s' : '$m:$s';
+    return '$h:$m:$s';
   }
 
   void _start() {
@@ -99,15 +88,15 @@ class _StopwatchSheetState extends State<StopwatchSheet> {
 
   Future<void> _save() async {
     final total = _elapsedNow;
-    final minutes = _roundedMinutes(total);
-    if (minutes <= 0) {
+    final seconds = total.inSeconds;
+    if (seconds <= 0) {
       if (!mounted) return;
       Navigator.of(context).pop();
       return;
     }
     try {
       final repo = context.read<SessionRepo>();
-      await repo.addManualEntry(widget.projectId, minutes);
+      await repo.addManualEntrySeconds(widget.projectId, seconds);
       if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
@@ -202,8 +191,7 @@ class _StopwatchSheetState extends State<StopwatchSheet> {
             const SizedBox(height: 8),
             if (_showConfirm) ...[
               Builder(builder: (context) {
-                final rounded = _roundedMinutes(elapsed);
-                final label = _minutesLabelFromInt(rounded);
+                final label = _formatHMS(elapsed);
                 return Text(
                   'Will add $label to ${widget.projectName}.',
                   style: Theme.of(context).textTheme.bodySmall,
@@ -212,8 +200,7 @@ class _StopwatchSheetState extends State<StopwatchSheet> {
               }),
               const SizedBox(height: 2),
               Builder(builder: (context) {
-                final rounded = _roundedMinutes(elapsed);
-                if (rounded > 0) return const SizedBox.shrink();
+                if (elapsed.inSeconds > 0) return const SizedBox.shrink();
                 final base = Theme.of(context).textTheme.bodySmall;
                 final c = base?.color;
                 return Text(

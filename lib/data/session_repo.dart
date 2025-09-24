@@ -72,6 +72,32 @@ class SessionRepo {
         ..endUtc = endUtc
         ..isManual = true
         ..manualDurationMinutes = minutes
+        ..manualDurationSeconds = minutes * 60
+        ..note = note
+        ..createdAtUtc = now;
+      final id = await isar.collection<Session>().put(s);
+      s.id = id;
+      return s;
+    });
+  }
+
+  /// Add a manual duration entry of [seconds]. Optional [end] defaults to now (UTC).
+  Future<Session> addManualEntrySeconds(int projectId, int seconds, {String? note, DateTime? end}) async {
+    if (seconds <= 0) {
+      throw ArgumentError.value(seconds, 'seconds', 'Must be > 0');
+    }
+    final isar = await AppDb.instance();
+    final endUtc = (end ?? DateTime.now()).toUtc();
+    final startUtc = endUtc.subtract(Duration(seconds: seconds));
+    final now = DateTime.now().toUtc();
+    return isar.writeTxn<Session>(() async {
+      final s = Session()
+        ..projectId = projectId
+        ..startUtc = startUtc
+        ..endUtc = endUtc
+        ..isManual = true
+        ..manualDurationMinutes = seconds ~/ 60
+        ..manualDurationSeconds = seconds
         ..note = note
         ..createdAtUtc = now;
       final id = await isar.collection<Session>().put(s);
@@ -95,5 +121,40 @@ class SessionRepo {
   Future<void> delete(int id) async {
     final isar = await AppDb.instance();
     await isar.writeTxn(() => isar.collection<Session>().delete(id));
+  }
+
+  /// Update an existing session. Callers should ensure field consistency.
+  Future<void> update(Session session) async {
+    final isar = await AppDb.instance();
+    await isar.writeTxn(() async {
+      await isar.collection<Session>().put(session);
+    });
+  }
+
+  /// Find sessions in the same project that overlap the given [startUtc, endUtc) interval.
+  /// Touching edges (end == other.start or start == other.end) are NOT considered overlap.
+  Future<List<Session>> findOverlaps({
+    required int projectId,
+    required int excludeId,
+    required DateTime startUtc,
+    required DateTime endUtc,
+  }) async {
+    final isar = await AppDb.instance();
+    final list = await isar
+        .collection<Session>()
+        .filter()
+        .projectIdEqualTo(projectId)
+        .findAll();
+    final overlaps = <Session>[];
+    for (final s in list) {
+      if (s.id == excludeId) continue;
+      final sEnd = s.endUtc;
+      if (sEnd == null) continue; // skip active sessions
+      // Overlap if intervals intersect with positive measure (no touching edges)
+      if (endUtc.isAfter(s.startUtc) && startUtc.isBefore(sEnd)) {
+        overlaps.add(s);
+      }
+    }
+    return overlaps;
   }
 }

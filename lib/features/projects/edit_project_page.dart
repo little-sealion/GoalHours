@@ -5,7 +5,9 @@ import '../../data/project.dart';
 import '../../data/project_repo.dart';
 
 class EditProjectPage extends StatefulWidget {
-  const EditProjectPage({super.key});
+  const EditProjectPage({super.key, this.projectId});
+
+  final int? projectId;
 
   @override
   State<EditProjectPage> createState() => _EditProjectPageState();
@@ -17,6 +19,35 @@ class _EditProjectPageState extends State<EditProjectPage> {
   final _goalCtrl = TextEditingController();
 
   bool _saving = false;
+  bool _loading = false;
+  bool _archived = false;
+  int? _editingProjectColor;
+  int? _editingProjectId;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.projectId != null) {
+      _loadProject(widget.projectId!);
+    }
+  }
+
+  Future<void> _loadProject(int id) async {
+    setState(() => _loading = true);
+    try {
+      final repo = context.read<ProjectRepo>();
+      final p = await repo.get(id);
+      if (p != null) {
+        _editingProjectId = p.id;
+        _nameCtrl.text = p.name;
+        _goalCtrl.text = (p.goalMinutes ~/ 60).toString();
+        _archived = p.archived;
+        _editingProjectColor = p.color;
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -34,13 +65,25 @@ class _EditProjectPageState extends State<EditProjectPage> {
       final repo = context.read<ProjectRepo>();
       final hours = int.parse(_goalCtrl.text.trim());
       final minutes = hours * 60;
-      final project = Project()
-        ..name = _nameCtrl.text.trim()
-        ..color = Theme.of(context).colorScheme.primary.value
-        ..goalMinutes = minutes
-        ..createdAtUtc = DateTime.now().toUtc();
-
-      await repo.add(project);
+      if (_editingProjectId == null) {
+        final project = Project()
+          ..name = _nameCtrl.text.trim()
+          ..color = Theme.of(context).colorScheme.primary.toARGB32()
+          ..goalMinutes = minutes
+          ..createdAtUtc = DateTime.now().toUtc()
+          ..archived = _archived;
+        await repo.add(project);
+      } else {
+        final existing = await repo.get(_editingProjectId!);
+        if (existing != null) {
+          existing
+            ..name = _nameCtrl.text.trim()
+            ..goalMinutes = minutes
+            ..archived = _archived
+            ..color = _editingProjectColor ?? existing.color; // preserve color
+          await repo.update(existing);
+        }
+      }
 
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -52,9 +95,10 @@ class _EditProjectPageState extends State<EditProjectPage> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isEditing = _editingProjectId != null || widget.projectId != null;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Goal Hours'),
+        title: Text(isEditing ? 'Edit Project' : 'New Project'),
       ),
       body: SafeArea(
         child: GestureDetector(
@@ -69,6 +113,8 @@ class _EditProjectPageState extends State<EditProjectPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (_loading)
+                      const LinearProgressIndicator(),
                     Text(
                       'What is your goal?',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -95,6 +141,17 @@ class _EditProjectPageState extends State<EditProjectPage> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Switch(
+                          value: _archived,
+                          onChanged: (val) => setState(() => _archived = val),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Archived'),
+                      ],
+                    ),
                     const SizedBox(height: 36),
                     Center(
                       child: ElevatedButton(
@@ -111,7 +168,7 @@ class _EditProjectPageState extends State<EditProjectPage> {
                                 height: 20,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('Create', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                            : Text(isEditing ? 'Save' : 'Create', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                       ),
                     ),
                   ],

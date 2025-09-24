@@ -19,3 +19,18 @@ String formatHoursMinutes(int minutes) {
   if (h > 0) return '${h}h';
   return '${m}m';
 }
+
+/// Format seconds as H:MM:SS (or M:SS if hours == 0).
+String formatHmsFromSeconds(int seconds) {
+  if (seconds <= 0) return '0:00';
+  final h = seconds ~/ 3600;
+  final m = (seconds % 3600) ~/ 60;
+  final s = seconds % 60;
+  final mm = m.toString().padLeft(h > 0 ? 2 : 1, '0');
+  final ss = s.toString().padLeft(2, '0');
+  if (h > 0) {
+    return '$h:$mm:$ss';
+  } else {
+    return '$mm:$ss';
+  }
+}

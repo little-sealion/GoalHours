@@ -94,3 +94,113 @@ Future<int?> showManualEntryDialog(BuildContext context) async {
 
   return result;
 }
+
+/// Shows a HH:MM:SS dialog and returns total seconds, or null if cancelled.
+Future<int?> showManualEntryDialogSeconds(BuildContext context) async {
+  final formKey = GlobalKey<FormState>();
+  final hoursCtrl = TextEditingController();
+  final minutesCtrl = TextEditingController();
+  final secondsCtrl = TextEditingController();
+
+  int? result;
+
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) {
+      return AlertDialog(
+        title: const Text('Manual Entry (HH:MM:SS)')
+            ,
+        content: Form(
+          key: formKey,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 64,
+                child: TextFormField(
+                  controller: hoursCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: 'HH',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    final n = int.tryParse(v);
+                    if (n == null || n < 0) return '>=0';
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 64,
+                child: TextFormField(
+                  controller: minutesCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: 'MM',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    final n = int.tryParse(v);
+                    if (n == null || n < 0 || n > 59) return '0-59';
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 64,
+                child: TextFormField(
+                  controller: secondsCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: 'SS',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    final n = int.tryParse(v);
+                    if (n == null || n < 0 || n > 59) return '0-59';
+                    return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (!formKey.currentState!.validate()) return;
+              final h = int.tryParse(hoursCtrl.text.trim()) ?? 0;
+              final m = int.tryParse(minutesCtrl.text.trim()) ?? 0;
+              final s = int.tryParse(secondsCtrl.text.trim()) ?? 0;
+              final total = h * 3600 + m * 60 + s;
+              if (total <= 0) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('Enter more than 0 seconds')),
+                );
+                return;
+              }
+              result = total;
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      );
+    },
+  );
+
+  return result;
+}

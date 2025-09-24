@@ -98,6 +98,7 @@ pubspec.yaml
   - name: String (unique per user not required)
   - color: int (ARGB hex)
   - goalMinutes: int
+  - sortIndex: int (manual order; defaults 0, indexed)
   - createdAtUtc: DateTime
   - archived: bool (defaults false)
 - Session
@@ -164,13 +165,16 @@ Constraints and rules:
     - Name, progress bar, elapsed/goal text
     - Start/Stop button (if active session -> shows Stop)
     - More menu: Edit, Archive, Delete
+    - Drag to reorder projects (persistent order)
   - FAB: New project (disabled when cap reached in Free)
 - Project detail
   - Header: progress ring/bar, goal edit quick action
-  - Sessions list: date grouping, duration, note; swipe to delete/edit
+  - Sessions list: grouped by date (Today/Yesterday/Date), duration, note; swipe to delete/edit
   - Add session: manual entry dialog
 - Timer sheet
-  - Big Start/Stop; shows running elapsed
+  - Local-only stopwatch (Option A): Start/Pause/Resume/Stop/Save; after Stop, Save adds a rounded-minute manual entry
+  - Expanded height (~80% screen) to reduce accidental taps; Save always enabled; "< 1m, keep going" hint when tiny
+  - Next polish: keep screen awake while stopwatch is visible
 - Colors
   - Choose from palette; stored per project; progress bar uses project color
 
@@ -287,26 +291,30 @@ Constraints and rules:
 - Add per-project visual affordances:
   - Per-row active indicator (“Running” badge) and stacked action icons: “+” (manual) and clock (opens stopwatch sheet).
   - Global floating timer chip when a session is active (Stop action).
-- Keep it minimal; real timer controls land in Step 6.
+- Keep it minimal; real timer controls landed in Step 6.
 - Done
 
-6) Timer flow + lifecycle safety (Next)
-- Stopwatch sheet UX:
-  - Start/Pause/Resume/Stop/Save flow.
-  - After Stop, show confirmation “Will add Xh Ym to <project>” and always-enable Save; show subtle “< 1m, keep going” hint when rounded minutes == 0.
-  - Expanded sheet height (~80% of screen) to reduce accidental taps on background.
-- Persistence integration:
-  - Start/Stop integrated with SessionRepo and TimerController so live sessions are DB-backed (single-active invariant).
-  - Elapsed derived from persisted startUtc, sheet shows live ticking.
-  - On resume/app restart, rehydrate from DB and continue ticking.
-- Acceptance:
-  - Start a session, pause/resume works; stop then save adds rounded minutes; totals update.
-  - Killing/restarting the app preserves the active session and elapsed.
-  - Attempting to start another session stops or blocks appropriately.
+5c) Drag-to-reorder (Done)
+- Add manual prioritization by dragging projects; persist order using a new `sortIndex` field
+- Ensure non-archived projects are displayed sorted by `sortIndex`; added safe default (0) for legacy records
+- Fixed ReorderableListView child keys and moved non-reorderable header/empty-state out of the list
+- Done
+
+6) Stopwatch (Option A) – Local-only (Done)
+- Stopwatch sheet: Start/Pause/Resume/Stop/Save
+- After Stop, show confirmation “Will add Xh Ym to <project>”; Save always enabled; show subtle “< 1m, keep going” hint when rounded minutes == 0
+- Expanded sheet height (~80% of screen) to minimize accidental background taps
+- Save creates a manual session entry (rounded to nearest minute); no DB-backed live session is maintained while running
+- Acceptance: stopping then saving adds time and updates totals; sheet UX is clear and responsive
+
+6b) Optional Option B – DB-backed live timer (Future)
+- Persist active session startUtc in DB, rehydrate on app resume/restart, enforce single-active invariant globally
+- Not planned for MVP; revisit if needed
 
 7) Polish the core
 - Colors/accessibility; larger tap targets; empty/first-run states.
 - Archive instead of delete (hide from main list).
+- Keep screen awake while stopwatch is visible.
 - Done when: core UX feels smooth and obvious.
 
 8) Monetization (RevenueCat) + gating + ads
@@ -315,5 +323,20 @@ Constraints and rules:
 - Integrate Google Mobile Ads banner on Projects/Detail for Free; hide for Premium.
 - Settings: “Go Premium” and “Restore purchases”.
 - Done when: entitlement flips remove ads and limits instantly.
+
+## Current status (Sept 2025)
+- Projects list and detail implemented with Material 3 + rough style
+- Manual entry dialog implemented; totals update live from session changes
+- Stopwatch sheet (Option A) implemented: local-only Start/Pause/Resume/Stop/Save with rounded-minute confirmation and expanded height
+- Sessions grouped by date (Today/Yesterday/Date) on Project Detail; delete supported
+- Drag-to-reorder implemented and persisted via `sortIndex`; default added to avoid legacy init crashes
+- Deprecated Color.value usage removed (now using toARGB32())
+
+## Next step decision
+- Implement keep-awake during stopwatch to prevent the device from sleeping while timing.
+  - Add dependency: `wakelock_plus`
+  - Enable wakelock when `StopwatchSheet` is shown and disable on dispose
+  - Acceptance: Screen stays on while stopwatch is open; returns to normal afterward
+- Follow-up: Add Archive action in project row/menu and hide archived from main list; optional Archived view
 
 

@@ -45,6 +45,17 @@ class ProjectRepo {
     });
   }
 
+  Future<void> unarchive(int id) async {
+    final isar = await AppDb.instance();
+    await isar.writeTxn(() async {
+      final p = await isar.collection<Project>().get(id);
+      if (p != null) {
+        p.archived = false;
+        await isar.collection<Project>().put(p);
+      }
+    });
+  }
+
   Future<void> delete(int id) async {
     final isar = await AppDb.instance();
     await isar.writeTxn(() => isar.collection<Project>().delete(id));
@@ -64,6 +75,17 @@ class ProjectRepo {
     .archivedEqualTo(false)
     .sortByCreatedAtUtc();
   return query.watch(fireImmediately: true);
+  }
+
+  /// Stream archived projects ordered by createdAtUtc (most recent last).
+  Future<Stream<List<Project>>> watchArchived() async {
+    final isar = await AppDb.instance();
+    final query = isar
+        .collection<Project>()
+        .filter()
+        .archivedEqualTo(true)
+        .sortByCreatedAtUtc();
+    return query.watch(fireImmediately: true);
   }
 
   /// Returns total minutes accumulated for the project by summing sessions.

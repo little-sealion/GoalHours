@@ -8,6 +8,7 @@ import 'package:goalhours/data/session_repo.dart';
 import 'package:goalhours/features/timer/manual_entry_dialog.dart';
 import 'package:goalhours/features/timer/timer_ctrl.dart';
 import 'package:goalhours/features/timer/stopwatch_sheet.dart';
+import 'package:goalhours/data/project_repo.dart';
 
 class ProjectsPage extends StatelessWidget {
   const ProjectsPage({super.key});
@@ -15,7 +16,16 @@ class ProjectsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('GoalHours')),
+      appBar: AppBar(
+        title: const Text('GoalHours'),
+        actions: [
+          IconButton(
+            tooltip: 'Archived',
+            icon: const Icon(Icons.archive_outlined),
+            onPressed: () => context.push('/archived'),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Consumer<ProjectsController>(
@@ -37,7 +47,8 @@ class ProjectsPage extends StatelessWidget {
                 ] else ...[
                   Expanded(
                     child: ReorderableListView.builder(
-                      padding: EdgeInsets.zero,
+                      // Add bottom padding so the last row doesn't get covered by the FAB
+                      padding: const EdgeInsets.only(bottom: 120),
                       itemCount: items.length,
                       onReorder: (oldIndex, newIndex) async {
                         // Adjust newIndex when moving down
@@ -83,17 +94,17 @@ class ProjectsPage extends StatelessWidget {
               final start = active.startUtc.toLocal();
               final now = DateTime.now();
               final elapsed = now.difference(start);
-              String mmss(Duration d) {
+              String hms(Duration d) {
+                final h = d.inHours.toString().padLeft(2, '0');
                 final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
                 final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-                final h = d.inHours;
-                return h > 0 ? '$h:$m:$s' : '$m:$s';
+                return '$h:$m:$s';
               }
               return Positioned(
                 right: 80,
                 bottom: 8,
                 child: ActionChip(
-                  label: Text('⏱ ${mmss(elapsed)}  Stop'),
+                  label: Text('⏱ ${hms(elapsed)}  Stop'),
                   onPressed: () => context.read<TimerController>().stop(),
                 ),
               );
@@ -136,9 +147,9 @@ class _ProjectRow extends StatelessWidget {
               visualDensity: VisualDensity.compact,
               onPressed: () async {
                 final sessionRepo = context.read<SessionRepo>();
-                final minutes = await showManualEntryDialog(context);
-                if (minutes == null) return;
-                await sessionRepo.addManualEntry(project.id, minutes);
+                final seconds = await showManualEntryDialogSeconds(context);
+                if (seconds == null) return;
+                await sessionRepo.addManualEntrySeconds(project.id, seconds);
               },
             ),
             IconButton(
@@ -210,6 +221,34 @@ class _ProjectRow extends StatelessWidget {
               ),
             ],
           ),
+        ),
+        const SizedBox(width: 8),
+        PopupMenuButton<String>(
+          tooltip: 'More',
+          onSelected: (value) async {
+            if (value == 'edit') {
+              if (context.mounted) context.push('/edit/${project.id}');
+            } else if (value == 'archive') {
+              final repo = context.read<ProjectRepo>();
+              await repo.archive(project.id);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Archived "${project.name}"'),
+                  action: SnackBarAction(
+                    label: 'Undo',
+                    onPressed: () async {
+                      await repo.unarchive(project.id);
+                    },
+                  ),
+                ),
+              );
+            }
+          },
+          itemBuilder: (ctx) => [
+            const PopupMenuItem(value: 'edit', child: Text('Edit')),
+            const PopupMenuItem(value: 'archive', child: Text('Archive')),
+          ],
         ),
       ],
     ));
