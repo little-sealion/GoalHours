@@ -10,6 +10,11 @@ import 'package:goalhours/features/projects/widgets/progress_bar.dart';
 import 'package:goalhours/features/timer/manual_entry_dialog.dart';
 import 'package:goalhours/features/timer/stopwatch_sheet.dart';
 import 'package:goalhours/utils/time_format.dart';
+import 'package:goalhours/monetization/ads.dart';
+import 'package:goalhours/monetization/premium_provider.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
+import 'dart:io' show Platform;
+import 'projects_page.dart' show kShowAdsInDebug; // reuse the debug flag
 
 class ProjectDetailPage extends StatelessWidget {
   const ProjectDetailPage({super.key, required this.projectId, this.readOnly = false});
@@ -89,9 +94,20 @@ class _ProjectDetailScaffold extends StatelessWidget {
               ],
             ],
           ),
-          body: ListView(
+          body: Consumer<PremiumController>(
+            builder: (context, premium, _) => ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              if ((kReleaseMode || kShowAdsInDebug) && !premium.isPremium) ...[
+                Center(
+                  child: BannerAdContainer(
+                    unitId: Platform.isIOS && kReleaseMode
+                        ? 'ca-app-pub-3438016031573205/5097401397'
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               // Header
               Text(
                 '${formatHoursMinutes(totalMinutes)} / ${formatHoursMinutes(goal)}',
@@ -112,7 +128,8 @@ class _ProjectDetailScaffold extends StatelessWidget {
               ],
             ],
           ),
-        );
+        ),
+      );
       },
     );
   }
@@ -220,7 +237,7 @@ Future<void> _editSession(BuildContext context, Session orig) async {
 
   final formKey = GlobalKey<FormState>();
 
-  int? _parseDurationSeconds() {
+  int? parseDurationSeconds() {
     final h = int.tryParse(hhCtrl.text.trim()) ?? 0;
     final m = int.tryParse(mmCtrl.text.trim()) ?? 0;
     final s = int.tryParse(ssCtrl.text.trim()) ?? 0;
@@ -293,7 +310,7 @@ Future<void> _editSession(BuildContext context, Session orig) async {
           FilledButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
-              final secs = _parseDurationSeconds();
+              final secs = parseDurationSeconds();
               if (secs == null) {
                 ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Enter a valid duration > 0')));
                 return;
@@ -308,6 +325,7 @@ Future<void> _editSession(BuildContext context, Session orig) async {
                 endUtc: newEnd,
               );
               if (conflicts.isNotEmpty) {
+                if (!ctx.mounted) return;
                 ScaffoldMessenger.of(ctx).showSnackBar(
                   const SnackBar(content: Text('Duration conflicts with another session. Adjust duration.')),
                 );
@@ -325,10 +343,11 @@ Future<void> _editSession(BuildContext context, Session orig) async {
                 ..createdAtUtc = orig.createdAtUtc;
 
               try {
-                await context.read<SessionRepo>().update(updated);
-                if (context.mounted) Navigator.of(ctx).pop();
+                await repo.update(updated);
+                if (!ctx.mounted) return;
+                Navigator.of(ctx).pop();
               } catch (e) {
-                if (!context.mounted) return;
+                if (!ctx.mounted) return;
                 ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
               }
             },

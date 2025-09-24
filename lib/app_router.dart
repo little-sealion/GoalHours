@@ -4,6 +4,7 @@ import 'features/projects/projects_page.dart';
 import 'features/projects/edit_project_page.dart';
 import 'features/projects/project_detail_page.dart';
 import 'features/projects/archived_projects_page.dart';
+import 'features/settings/settings_page.dart';
 
 final GoRouter appRouter = GoRouter(
   routes: <RouteBase>[
@@ -11,6 +12,11 @@ final GoRouter appRouter = GoRouter(
       path: '/',
       name: 'projects',
       builder: (BuildContext context, GoRouterState state) => const ProjectsPage(),
+    ),
+    GoRoute(
+      path: '/settings',
+      name: 'settings',
+      builder: (BuildContext context, GoRouterState state) => const SettingsPage(),
     ),
     GoRoute(
       path: '/archived',

@@ -27,33 +27,43 @@ const SessionSchema = CollectionSchema(
       name: r'durationMinutes',
       type: IsarType.long,
     ),
-    r'endUtc': PropertySchema(
+    r'durationSeconds': PropertySchema(
       id: 2,
+      name: r'durationSeconds',
+      type: IsarType.long,
+    ),
+    r'endUtc': PropertySchema(
+      id: 3,
       name: r'endUtc',
       type: IsarType.dateTime,
     ),
     r'isManual': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'isManual',
       type: IsarType.bool,
     ),
     r'manualDurationMinutes': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'manualDurationMinutes',
       type: IsarType.long,
     ),
+    r'manualDurationSeconds': PropertySchema(
+      id: 6,
+      name: r'manualDurationSeconds',
+      type: IsarType.long,
+    ),
     r'note': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'note',
       type: IsarType.string,
     ),
     r'projectId': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'projectId',
       type: IsarType.long,
     ),
     r'startUtc': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'startUtc',
       type: IsarType.dateTime,
     )
@@ -122,12 +132,14 @@ void _sessionSerialize(
 ) {
   writer.writeDateTime(offsets[0], object.createdAtUtc);
   writer.writeLong(offsets[1], object.durationMinutes);
-  writer.writeDateTime(offsets[2], object.endUtc);
-  writer.writeBool(offsets[3], object.isManual);
-  writer.writeLong(offsets[4], object.manualDurationMinutes);
-  writer.writeString(offsets[5], object.note);
-  writer.writeLong(offsets[6], object.projectId);
-  writer.writeDateTime(offsets[7], object.startUtc);
+  writer.writeLong(offsets[2], object.durationSeconds);
+  writer.writeDateTime(offsets[3], object.endUtc);
+  writer.writeBool(offsets[4], object.isManual);
+  writer.writeLong(offsets[5], object.manualDurationMinutes);
+  writer.writeLong(offsets[6], object.manualDurationSeconds);
+  writer.writeString(offsets[7], object.note);
+  writer.writeLong(offsets[8], object.projectId);
+  writer.writeDateTime(offsets[9], object.startUtc);
 }
 
 Session _sessionDeserialize(
@@ -138,13 +150,14 @@ Session _sessionDeserialize(
 ) {
   final object = Session();
   object.createdAtUtc = reader.readDateTime(offsets[0]);
-  object.endUtc = reader.readDateTimeOrNull(offsets[2]);
+  object.endUtc = reader.readDateTimeOrNull(offsets[3]);
   object.id = id;
-  object.isManual = reader.readBool(offsets[3]);
-  object.manualDurationMinutes = reader.readLongOrNull(offsets[4]);
-  object.note = reader.readStringOrNull(offsets[5]);
-  object.projectId = reader.readLong(offsets[6]);
-  object.startUtc = reader.readDateTime(offsets[7]);
+  object.isManual = reader.readBool(offsets[4]);
+  object.manualDurationMinutes = reader.readLongOrNull(offsets[5]);
+  object.manualDurationSeconds = reader.readLongOrNull(offsets[6]);
+  object.note = reader.readStringOrNull(offsets[7]);
+  object.projectId = reader.readLong(offsets[8]);
+  object.startUtc = reader.readDateTime(offsets[9]);
   return object;
 }
 
@@ -160,16 +173,20 @@ P _sessionDeserializeProp<P>(
     case 1:
       return (reader.readLong(offset)) as P;
     case 2:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 3:
-      return (reader.readBool(offset)) as P;
-    case 4:
-      return (reader.readLongOrNull(offset)) as P;
-    case 5:
-      return (reader.readStringOrNull(offset)) as P;
-    case 6:
       return (reader.readLong(offset)) as P;
+    case 3:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 4:
+      return (reader.readBool(offset)) as P;
+    case 5:
+      return (reader.readLongOrNull(offset)) as P;
+    case 6:
+      return (reader.readLongOrNull(offset)) as P;
     case 7:
+      return (reader.readStringOrNull(offset)) as P;
+    case 8:
+      return (reader.readLong(offset)) as P;
+    case 9:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -588,6 +605,60 @@ extension SessionQueryFilter
     });
   }
 
+  QueryBuilder<Session, Session, QAfterFilterCondition> durationSecondsEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'durationSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition>
+      durationSecondsGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'durationSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition> durationSecondsLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'durationSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition> durationSecondsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'durationSeconds',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<Session, Session, QAfterFilterCondition> endUtcIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -785,6 +856,80 @@ extension SessionQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'manualDurationMinutes',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition>
+      manualDurationSecondsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'manualDurationSeconds',
+      ));
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition>
+      manualDurationSecondsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'manualDurationSeconds',
+      ));
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition>
+      manualDurationSecondsEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'manualDurationSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition>
+      manualDurationSecondsGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'manualDurationSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition>
+      manualDurationSecondsLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'manualDurationSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition>
+      manualDurationSecondsBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'manualDurationSeconds',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -1077,6 +1222,18 @@ extension SessionQuerySortBy on QueryBuilder<Session, Session, QSortBy> {
     });
   }
 
+  QueryBuilder<Session, Session, QAfterSortBy> sortByDurationSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'durationSeconds', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterSortBy> sortByDurationSecondsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'durationSeconds', Sort.desc);
+    });
+  }
+
   QueryBuilder<Session, Session, QAfterSortBy> sortByEndUtc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'endUtc', Sort.asc);
@@ -1111,6 +1268,19 @@ extension SessionQuerySortBy on QueryBuilder<Session, Session, QSortBy> {
       sortByManualDurationMinutesDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'manualDurationMinutes', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterSortBy> sortByManualDurationSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'manualDurationSeconds', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterSortBy>
+      sortByManualDurationSecondsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'manualDurationSeconds', Sort.desc);
     });
   }
 
@@ -1177,6 +1347,18 @@ extension SessionQuerySortThenBy
     });
   }
 
+  QueryBuilder<Session, Session, QAfterSortBy> thenByDurationSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'durationSeconds', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterSortBy> thenByDurationSecondsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'durationSeconds', Sort.desc);
+    });
+  }
+
   QueryBuilder<Session, Session, QAfterSortBy> thenByEndUtc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'endUtc', Sort.asc);
@@ -1223,6 +1405,19 @@ extension SessionQuerySortThenBy
       thenByManualDurationMinutesDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'manualDurationMinutes', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterSortBy> thenByManualDurationSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'manualDurationSeconds', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterSortBy>
+      thenByManualDurationSecondsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'manualDurationSeconds', Sort.desc);
     });
   }
 
@@ -1277,6 +1472,12 @@ extension SessionQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Session, Session, QDistinct> distinctByDurationSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'durationSeconds');
+    });
+  }
+
   QueryBuilder<Session, Session, QDistinct> distinctByEndUtc() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'endUtc');
@@ -1292,6 +1493,12 @@ extension SessionQueryWhereDistinct
   QueryBuilder<Session, Session, QDistinct> distinctByManualDurationMinutes() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'manualDurationMinutes');
+    });
+  }
+
+  QueryBuilder<Session, Session, QDistinct> distinctByManualDurationSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'manualDurationSeconds');
     });
   }
 
@@ -1335,6 +1542,12 @@ extension SessionQueryProperty
     });
   }
 
+  QueryBuilder<Session, int, QQueryOperations> durationSecondsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'durationSeconds');
+    });
+  }
+
   QueryBuilder<Session, DateTime?, QQueryOperations> endUtcProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'endUtc');
@@ -1351,6 +1564,13 @@ extension SessionQueryProperty
       manualDurationMinutesProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'manualDurationMinutes');
+    });
+  }
+
+  QueryBuilder<Session, int?, QQueryOperations>
+      manualDurationSecondsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'manualDurationSeconds');
     });
   }
 

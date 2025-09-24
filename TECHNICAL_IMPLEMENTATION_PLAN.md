@@ -3,7 +3,7 @@
 ## Overview
 GoalHours is a Flutter mobile app to track time against hour goals per project. Users can:
 - Create projects with target hour goals
-- Track time by starting/stopping a timer OR by entering hours:minutes manually
+- Track time by starting/stopping a timer OR by entering hours:minutes:seconds manually
 - See a colorful progress bar per project showing progress toward the goal
 
 Constraints and scope:
@@ -20,8 +20,8 @@ Constraints and scope:
   - Display progress bar showing accumulated time / goal
 - Sessions (time entries)
   - Option 1: Live timer (start/stop) -> persists start time, calculates duration on stop
-  - Option 2: Manual entry of duration (HH:MM)
-  - List sessions per project, edit/delete entries, notes optional
+  - Option 2: Manual entry of duration (HH:MM:SS)
+  - List sessions per project; edit duration only; delete entries; notes optional
   - Only one active session app-wide at a time
 - Monetization & gating
   - Banner ads in Free
@@ -43,6 +43,9 @@ Constraints and scope:
 - Persistence: Isar (local DB). A single repository per entity is enough.
 - Time handling: Store UTC timestamps; compute durations from DB values.
 - Theming: Material 3; per-project color stored as int; rough_flutter for sketch style.
+
+Routing
+- go_router routes: `/` (projects), `/edit` (new project), `/edit/:id` (edit), `/project/:id` (detail), `/archived` (archived list)
 
 ### Project structure (lean)
 ```
@@ -107,13 +110,14 @@ pubspec.yaml
   - startUtc: DateTime
   - endUtc: DateTime? (null if active)
   - isManual: bool
-  - manualDurationMinutes: int? (for manual entries; else computed from start/end)
+  - manualDurationSeconds: int? (for manual entries; else computed from start/end)
   - note: String?
   - createdAtUtc: DateTime
 
 Constraints and rules:
 - At most one session with endUtc == null across the entire DB
-- Duration minutes = manualDurationMinutes if isManual else max(0, endUtc - startUtc)
+- Duration seconds = manualDurationSeconds if isManual else max(0, endUtc - startUtc)
+- Display durations as H:MM:SS; totals may be shown compactly as XhYm
 - Accumulated time per project = sum of sessions durations (exclude deleted/archived)
 
 ## Key workflows
@@ -127,8 +131,13 @@ Constraints and rules:
 - On stop: set endUtc=now; persist; update aggregates
 
 3) Manual entry
-- Input HH:MM; validate range (0–23:59 typical, but allow larger)
-- Create Session(isManual=true, manualDurationMinutes=…) with endUtc=now, startUtc=endUtc-duration (for ordering)
+- Input HH:MM:SS; validate non-negative and allow larger values
+- Create Session(isManual=true, manualDurationSeconds=…) with endUtc=now, startUtc=endUtc-duration (for ordering)
+
+3b) Edit session duration
+- Open dialog with HH:MM:SS; update duration only
+- Recompute endUtc = startUtc + duration; validate duration > 0
+- Check for overlaps within same project; block save with warning if overlapping
 
 4) Progress calculation
 - Compute totalMinutes/goalMinutes
@@ -158,6 +167,7 @@ Constraints and rules:
 - Active timer UI uses a Ticker/Timer to update every second, but truth source is startUtc saved in DB
 - On app pause/terminate, no background service required; elapsed is derived from now - startUtc when resumed
 - Handle DST/timezone changes by using UTC
+ - Stopwatch sheet displays HH:MM:SS (starting at 00:00:00); Save persists exact seconds
 
 ## UI/UX
 - Projects list
@@ -166,14 +176,18 @@ Constraints and rules:
     - Start/Stop button (if active session -> shows Stop)
     - More menu: Edit, Archive, Delete
     - Drag to reorder projects (persistent order)
+    - Archived projects are hidden from main list; AppBar action navigates to Archived screen
+    - Extra bottom padding ensures FAB doesn't cover row menus (fixed)
   - FAB: New project (disabled when cap reached in Free)
 - Project detail
-  - Header: progress ring/bar, goal edit quick action
-  - Sessions list: grouped by date (Today/Yesterday/Date), duration, note; swipe to delete/edit
-  - Add session: manual entry dialog
+  - Header: progress ring/bar; read-only when project is archived
+  - Sessions list: grouped by date (Today/Yesterday/Date), durations shown as H:MM:SS; swipe to delete; per-item edit opens duration-only dialog
+  - Overlap check prevents saving conflicting edits
+  - Add session: manual entry dialog (HH:MM:SS)
 - Timer sheet
-  - Local-only stopwatch (Option A): Start/Pause/Resume/Stop/Save; after Stop, Save adds a rounded-minute manual entry
-  - Expanded height (~80% screen) to reduce accidental taps; Save always enabled; "< 1m, keep going" hint when tiny
+  - Local-only stopwatch (Option A): Start/Pause/Resume/Stop/Save
+  - After Stop, show confirmation “Will add H:MM:SS to <project>”; Save always enabled
+  - Expanded height (~80% screen) to reduce accidental taps; Save always enabled
   - Next polish: keep screen awake while stopwatch is visible
 - Colors
   - Choose from palette; stored per project; progress bar uses project color
@@ -209,6 +223,7 @@ Constraints and rules:
 - purchases_flutter   # RevenueCat
 - intl (format durations/dates)
 - freezed_annotation + freezed (optional for immutable models)
+ - wakelock_plus (planned; keep screen awake during stopwatch)
 
 ## Error handling & edge cases
 - Active session exists on another project when starting a new timer -> prompt to stop existing
@@ -229,9 +244,9 @@ Constraints and rules:
   - Free vs Premium gating
 - Widget tests
   - Progress bar rendering at edge values (0%, 100%, >100%)
-  - Project list interactions
+  - Project list interactions (reorder keys, archived visibility)
 - Integration tests
-  - Happy path: create project, run timer, stop, verify progress
+  - Happy path: create project, run stopwatch, save seconds, verify progress
   - Purchase flow (mocked)
 
 ## Build, CI, and release
@@ -326,17 +341,28 @@ Constraints and rules:
 
 ## Current status (Sept 2025)
 - Projects list and detail implemented with Material 3 + rough style
-- Manual entry dialog implemented; totals update live from session changes
-- Stopwatch sheet (Option A) implemented: local-only Start/Pause/Resume/Stop/Save with rounded-minute confirmation and expanded height
-- Sessions grouped by date (Today/Yesterday/Date) on Project Detail; delete supported
-- Drag-to-reorder implemented and persisted via `sortIndex`; default added to avoid legacy init crashes
+- Manual entry dialog (HH:MM:SS) implemented; totals update live from session changes
+- Stopwatch sheet (Option A): Start/Pause/Resume/Stop/Save with HH:MM:SS display and exact-seconds save
+- Sessions grouped by date (Today/Yesterday/Date) on Project Detail; delete supported; per-item edit allows duration-only; overlap prevention added
+- Drag-to-reorder implemented and persisted via `sortIndex`; keys fixed; bottom padding avoids FAB overlap
+- Archived projects implemented: hidden from main list; dedicated Archived screen with unarchive; archived detail is read-only
 - Deprecated Color.value usage removed (now using toARGB32())
 
 ## Next step decision
-- Implement keep-awake during stopwatch to prevent the device from sleeping while timing.
+
+Immediate housekeeping
+- Regenerate Isar code after data model changes and run analyzer
+  - flutter pub run build_runner build --delete-conflicting-outputs
+  - flutter analyze
+  - Acceptance: No analyzer errors; generated adapters reflect manualDurationSeconds
+
+Feature next (small, high value)
+- Keep screen awake while stopwatch is visible
   - Add dependency: `wakelock_plus`
   - Enable wakelock when `StopwatchSheet` is shown and disable on dispose
   - Acceptance: Screen stays on while stopwatch is open; returns to normal afterward
-- Follow-up: Add Archive action in project row/menu and hide archived from main list; optional Archived view
+
+Then
+- Monetization (M3): RevenueCat entitlement + 3-project gating + ads
 
 

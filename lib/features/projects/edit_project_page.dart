@@ -20,7 +20,6 @@ class _EditProjectPageState extends State<EditProjectPage> {
 
   bool _saving = false;
   bool _loading = false;
-  bool _archived = false;
   int? _editingProjectColor;
   int? _editingProjectId;
 
@@ -41,7 +40,6 @@ class _EditProjectPageState extends State<EditProjectPage> {
         _editingProjectId = p.id;
         _nameCtrl.text = p.name;
         _goalCtrl.text = (p.goalMinutes ~/ 60).toString();
-        _archived = p.archived;
         _editingProjectColor = p.color;
       }
     } finally {
@@ -71,7 +69,8 @@ class _EditProjectPageState extends State<EditProjectPage> {
           ..color = Theme.of(context).colorScheme.primary.toARGB32()
           ..goalMinutes = minutes
           ..createdAtUtc = DateTime.now().toUtc()
-          ..archived = _archived;
+          // New projects start as active; archive is managed from the list menu.
+          ..archived = false;
         await repo.add(project);
       } else {
         final existing = await repo.get(_editingProjectId!);
@@ -79,7 +78,8 @@ class _EditProjectPageState extends State<EditProjectPage> {
           existing
             ..name = _nameCtrl.text.trim()
             ..goalMinutes = minutes
-            ..archived = _archived
+            // Preserve existing archived state; editing does not change it here.
+            ..archived = existing.archived
             ..color = _editingProjectColor ?? existing.color; // preserve color
           await repo.update(existing);
         }
@@ -140,17 +140,6 @@ class _EditProjectPageState extends State<EditProjectPage> {
                         if (n == null || n <= 0) return 'Enter a positive number of hours';
                         return null;
                       },
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Switch(
-                          value: _archived,
-                          onChanged: (val) => setState(() => _archived = val),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text('Archived'),
-                      ],
                     ),
                     const SizedBox(height: 36),
                     Center(

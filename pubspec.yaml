@@ -45,6 +45,7 @@ dependencies:
   intl: 
   path_provider: 
   rough_flutter: 
+  wakelock_plus: ^1.2.8
 
 dev_dependencies:
   flutter_test:

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:goalhours/data/session_repo.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class StopwatchSheet extends StatefulWidget {
   const StopwatchSheet({super.key, required this.projectId, required this.projectName, this.accent});
@@ -27,6 +28,8 @@ class _StopwatchSheetState extends State<StopwatchSheet> {
   void initState() {
     super.initState();
     _startTicker();
+    // Ensure screen stays awake while the stopwatch sheet is visible and running
+    // We'll toggle wakelock on start/resume and off on pause/stop/dispose for battery friendliness.
   }
 
   void _startTicker() {
@@ -40,6 +43,8 @@ class _StopwatchSheetState extends State<StopwatchSheet> {
   @override
   void dispose() {
     _ticker?.cancel();
+    // Be sure to release wakelock when the sheet is dismissed
+    WakelockPlus.disable();
     super.dispose();
   }
 
@@ -65,6 +70,8 @@ class _StopwatchSheetState extends State<StopwatchSheet> {
       _running = true;
       _lastStart = DateTime.now();
     });
+    // Keep screen awake while running
+    WakelockPlus.enable();
   }
 
   void _pause() {
@@ -75,6 +82,8 @@ class _StopwatchSheetState extends State<StopwatchSheet> {
       _lastStart = null;
       _running = false;
     });
+    // Allow screen to sleep when paused (user intention)
+    WakelockPlus.disable();
   }
 
   void _stop() {
@@ -84,6 +93,8 @@ class _StopwatchSheetState extends State<StopwatchSheet> {
       _stopped = true;
       _showConfirm = true; // show message prompting save
     });
+    // Ensure wakelock is off after stopping
+    WakelockPlus.disable();
   }
 
   Future<void> _save() async {

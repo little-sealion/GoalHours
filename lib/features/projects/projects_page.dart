@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
+import 'dart:io' show Platform;
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:goalhours/features/projects/projects_ctrl.dart';
@@ -9,6 +11,11 @@ import 'package:goalhours/features/timer/manual_entry_dialog.dart';
 import 'package:goalhours/features/timer/timer_ctrl.dart';
 import 'package:goalhours/features/timer/stopwatch_sheet.dart';
 import 'package:goalhours/data/project_repo.dart';
+import 'package:goalhours/monetization/premium_provider.dart';
+import 'package:goalhours/monetization/ads.dart';
+
+// Enable ads in debug/profile for testing with: --dart-define=SHOW_ADS_IN_DEBUG=true
+const bool kShowAdsInDebug = bool.fromEnvironment('SHOW_ADS_IN_DEBUG', defaultValue: false);
 
 class ProjectsPage extends StatelessWidget {
   const ProjectsPage({super.key});
@@ -24,16 +31,32 @@ class ProjectsPage extends StatelessWidget {
             icon: const Icon(Icons.archive_outlined),
             onPressed: () => context.push('/archived'),
           ),
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings'),
+          ),
         ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Consumer<ProjectsController>(
-          builder: (context, ctrl, _) {
+        child: Consumer2<ProjectsController, PremiumController>(
+          builder: (context, ctrl, premium, __) {
             final items = ctrl.items;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Top banner ad (debug via SHOW_ADS_IN_DEBUG, or release). Hidden for premium users.
+                if ((kReleaseMode || kShowAdsInDebug) && !premium.isPremium) ...[
+                  Center(
+                    child: BannerAdContainer(
+                      unitId: Platform.isIOS && kReleaseMode
+                          ? 'ca-app-pub-3438016031573205/5097401397'
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Text(
                   'My Goals',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -41,10 +64,13 @@ class ProjectsPage extends StatelessWidget {
                       ),
                 ),
                 const SizedBox(height: 12),
-                if (items.isEmpty) ...[
-                  const SizedBox(height: 24),
-                  Text('Projects will appear here', style: Theme.of(context).textTheme.bodyMedium),
-                ] else ...[
+                if (items.isEmpty)
+                  Expanded(
+                    child: Center(
+                      child: Text('Projects will appear here', style: Theme.of(context).textTheme.bodyMedium),
+                    ),
+                  )
+                else ...[
                   Expanded(
                     child: ReorderableListView.builder(
                       // Add bottom padding so the last row doesn't get covered by the FAB
@@ -72,45 +98,67 @@ class ProjectsPage extends StatelessWidget {
                         );
                       },
                     ),
-                  )
+                  ),
                 ],
               ],
             );
           },
         ),
       ),
-      floatingActionButton: Stack(
-        alignment: Alignment.bottomRight,
-        children: [
-          FloatingActionButton(
-            onPressed: () => context.push('/edit'),
-            child: const Icon(Icons.add),
-          ),
-          // Global timer chip when active
-          Consumer<TimerController>(
-            builder: (context, timer, _) {
-              final active = timer.active;
-              if (active == null) return const SizedBox.shrink();
-              final start = active.startUtc.toLocal();
-              final now = DateTime.now();
-              final elapsed = now.difference(start);
-              String hms(Duration d) {
-                final h = d.inHours.toString().padLeft(2, '0');
-                final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-                final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-                return '$h:$m:$s';
-              }
-              return Positioned(
-                right: 80,
-                bottom: 8,
-                child: ActionChip(
-                  label: Text('⏱ ${hms(elapsed)}  Stop'),
-                  onPressed: () => context.read<TimerController>().stop(),
+      bottomNavigationBar: null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Consumer3<ProjectsController, PremiumController, TimerController>(
+        builder: (context, ctrl, premium, timer, _) {
+          final atCap = !premium.isPremium && ctrl.items.length >= 3;
+          final mq = MediaQuery.of(context);
+          // Banner is at the top now; no extra bottom offset needed.
+          final bottomOffset = 16.0 + mq.padding.bottom;
+
+          String hms(Duration d) {
+            final h = d.inHours.toString().padLeft(2, '0');
+            final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+            final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+            return '$h:$m:$s';
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(bottom: bottomOffset, right: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (timer.active != null) ...[
+                  Builder(builder: (_) {
+                    final start = timer.active!.startUtc.toLocal();
+                    final elapsed = DateTime.now().difference(start);
+                    return ActionChip(
+                      label: Text('⏱ ${hms(elapsed)}  Stop'),
+                      onPressed: () => context.read<TimerController>().stop(),
+                    );
+                  }),
+                  const SizedBox(height: 8),
+                ],
+                FloatingActionButton(
+                  onPressed: atCap
+                      ? () async {
+                          await showDialog<void>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Limit reached'),
+                              content: const Text('Free version allows up to 3 projects. Go Premium to create more.'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
+                              ],
+                            ),
+                          );
+                        }
+                      : () => context.push('/edit'),
+                  child: const Icon(Icons.add),
                 ),
-              );
-            },
-          ),
-        ],
+              ],
+            ),
+          );
+        },
       ),
     );
   }

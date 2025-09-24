@@ -108,8 +108,6 @@ Future<int?> showManualEntryDialogSeconds(BuildContext context) async {
     context: context,
     builder: (ctx) {
       return AlertDialog(
-        title: const Text('Manual Entry (HH:MM:SS)')
-            ,
         content: Form(
           key: formKey,
           child: Row(
